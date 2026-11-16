@@ -1,0 +1,122 @@
+Project electronics_inventory {
+  database_type: 'MySQL'
+  Note: 'Project I - Backend quản lý bán hàng và tồn kho đồ điện tử'
+}
+
+Enum user_role {
+  ADMIN
+  STAFF
+}
+
+Enum document_status {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+Table users {
+  id int [pk, increment]
+  full_name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  role user_role [not null, default: 'STAFF']
+  active boolean [not null, default: true]
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table categories {
+  id int [pk, increment]
+  name varchar(100) [not null, unique]
+}
+
+Table products {
+  id int [pk, increment]
+  sku varchar(50) [not null, unique]
+  name varchar(255) [not null]
+  category_id int [not null]
+  sale_price decimal(15,2) [not null, note: 'Giá bán không âm']
+  active boolean [not null, default: true]
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table suppliers {
+  id int [pk, increment]
+  name varchar(255) [not null]
+  phone varchar(20)
+  email varchar(255)
+  address varchar(500)
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table inventory {
+  product_id int [pk]
+  quantity int [not null, default: 0, note: 'Tồn kho không âm']
+  updated_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Tạo cùng sản phẩm với tồn bằng 0. Chỉ thay đổi tồn qua xác nhận chứng từ.'
+}
+
+Table stock_receipts {
+  id int [pk, increment]
+  supplier_id int [not null]
+  created_by int [not null]
+  status document_status [not null, default: 'DRAFT']
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+  confirmed_by int
+  confirmed_at datetime
+}
+
+Table stock_receipt_items {
+  id int [pk, increment]
+  receipt_id int [not null]
+  product_id int [not null]
+  quantity int [not null, note: 'Số nguyên dương']
+  unit_cost decimal(15,2) [not null, note: 'Giá nhập mỗi chiếc, không âm']
+
+  indexes {
+    (receipt_id, product_id) [unique]
+  }
+}
+
+Table sales_orders {
+  id int [pk, increment]
+  created_by int [not null]
+  status document_status [not null, default: 'DRAFT']
+  created_at datetime [not null, default: `CURRENT_TIMESTAMP`]
+  confirmed_by int
+  confirmed_at datetime
+}
+
+Table sales_order_items {
+  id int [pk, increment]
+  order_id int [not null]
+  product_id int [not null]
+  quantity int [not null, note: 'Số nguyên dương']
+  unit_price decimal(15,2) [not null, note: 'Giá bán lưu khi thêm vào đơn, không âm']
+
+  indexes {
+    (order_id, product_id) [unique]
+  }
+}
+
+// Danh mục và tồn kho
+Ref: products.category_id > categories.id
+Ref: products.id - inventory.product_id
+
+// Phiếu nhập
+Ref: stock_receipts.supplier_id > suppliers.id
+Ref: stock_receipts.created_by > users.id
+Ref: stock_receipts.confirmed_by > users.id
+
+Ref: stock_receipt_items.receipt_id > stock_receipts.id
+Ref: stock_receipt_items.product_id > products.id
+
+// Đơn bán
+Ref: sales_orders.created_by > users.id
+Ref: sales_orders.confirmed_by > users.id
+
+Ref: sales_order_items.order_id > sales_orders.id
+Ref: sales_order_items.product_id > products.id
