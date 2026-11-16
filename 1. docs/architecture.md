@@ -254,18 +254,37 @@ Module `inventory` tổng hợp lịch sử từ:
 
 ## 9. Xác thực và phân quyền
 
-Yêu cầu kiến trúc:
+Hệ thống sử dụng JWT access token để xác thực người dùng.
 
-- Mật khẩu được băm bằng thư viện phù hợp.
-- Chỉ cung cấp thông tin tài khoản cần thiết trong response.
-- Middleware kiểm tra danh tính trước các chức năng được bảo vệ.
-- Vai trò được kiểm tra cho các chức năng quản trị.
-- Quyền theo người sở hữu chứng từ được kiểm tra trong Service.
-- Tài khoản bị khóa phải bị từ chối cả khi từng đăng nhập thành công.
+### 9.1. Đăng nhập và sử dụng token
 
-Cơ chế JWT hoặc session, thời hạn hiệu lực và cách vô hiệu hóa phiên sau đổi mật khẩu cần được chốt trước khi triển khai module xác thực.
+- Người dùng đăng nhập bằng email và mật khẩu.
+- Backend kiểm tra mật khẩu và trạng thái hoạt động của tài khoản.
+- Nếu hợp lệ, backend cấp JWT access token có thời hạn 1 giờ.
+- Token chứa ID tài khoản (`sub`), thời điểm cấp (`iat`) và thời điểm hết hạn (`exp`).
+- Token không chứa mật khẩu hoặc dữ liệu nhạy cảm.
+- Request tới API được bảo vệ phải gửi header:
 
-Nếu sử dụng JWT, không chỉ tin trạng thái tài khoản trong token để cho phép tài khoản đã bị khóa tiếp tục thao tác.
+      Authorization: Bearer <access_token>
+
+- Phiên bản đầu chưa triển khai refresh token. Khi token hết hạn, người dùng đăng nhập lại.
+
+### 9.2. Kiểm tra request và phân quyền
+
+- Backend kiểm tra chữ ký và thời hạn token bằng thuật toán được cấu hình.
+- Token không hợp lệ hoặc hết hạn bị từ chối.
+- Sau khi xác minh token, backend đọc tài khoản tương ứng trong MySQL.
+- Tài khoản không tồn tại hoặc bị khóa không được tiếp tục truy cập.
+- Quyền được xác định từ vai trò hiện tại trong database.
+- Service kiểm tra thêm quyền theo chứng từ: STAFF chỉ được sửa, hủy và xác nhận chứng từ mình tạo.
+- Secret ký token được quản lý qua cấu hình môi trường, không commit vào repository.
+
+### 9.3. Khóa tài khoản và đổi mật khẩu
+
+- Khi tài khoản bị khóa, các request được kiểm tra sau thời điểm khóa bị từ chối.
+- Đổi mật khẩu thành công khiến mật khẩu cũ không còn dùng được để đăng nhập.
+- Token đã cấp trước khi đổi mật khẩu vẫn có hiệu lực tới khi hết hạn, nếu tài khoản còn hoạt động.
+- Phiên bản này chưa triển khai cơ chế thu hồi riêng từng token hoặc vô hiệu hóa toàn bộ token khi đổi mật khẩu.
 
 ## 10. Caching
 
@@ -442,15 +461,18 @@ Chi tiết endpoint và trường log được cụ thể hóa khi dựng nền 
 
 | Nội dung | Thời điểm cần chốt |
 |---|---|
-| JWT hay session, thời hạn và vô hiệu hóa phiên | Trước khi triển khai auth |
-| Chính sách mật khẩu và khởi tạo ADMIN đầu tiên | Trước khi triển khai users/auth |
+| Yêu cầu độ dài mật khẩu và cách khởi tạo ADMIN đầu tiên | Trước khi triển khai users/auth |
 | Chi tiết khóa và cập nhật tồn | Trước khi triển khai xác nhận chứng từ |
 | TTL, cache key và xử lý dữ liệu cũ | Trước khi triển khai caching |
 | Vector store, embedding, LLM và lưu tài liệu | Trước khi triển khai knowledge |
 | Môi trường demo, registry và secret triển khai | Khi dựng Docker/CD ban đầu |
-| Quy tắc nghiệp vụ còn mở | Trước API liên quan, theo business-rules.md |
+| Các quy tắc nghiệp vụ còn mở trong business-rules.md, trừ chính sách token đã chốt tại mục 9 | Trước khi triển khai API liên quan |
+
+Cơ chế JWT, thời hạn token và hành vi sau khi khóa tài khoản hoặc đổi mật khẩu đã được xác định tại mục 9.
 
 Các quyết định có ảnh hưởng đáng kể phải được ghi nhận trong tài liệu hoặc issue, kèm lý do lựa chọn và giới hạn.
+
+
 
 ## 17. Nguyên tắc duy trì kiến trúc
 
