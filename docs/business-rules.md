@@ -56,7 +56,7 @@ Ma trận quyền chức năng được quy định trong `scope.md`. Mọi thao
 | BR-CAT-01 | Tên danh mục là bắt buộc và không được trùng. |
 | BR-CAT-02 | Mỗi sản phẩm thuộc một danh mục tồn tại trong hệ thống. |
 | BR-CAT-03 | Một danh mục có thể chứa nhiều sản phẩm. |
-| BR-CAT-04 | Không được xóa danh mục đang có sản phẩm liên kết, kể cả sản phẩm đã ngừng kinh doanh. Muốn xóa phải chuyển các sản phẩm sang danh mục khác trước. |
+| BR-CAT-04 | Phiên bản hiện tại không cung cấp chức năng xóa danh mục. Liên kết giữa danh mục và sản phẩm phải được bảo vệ bằng khóa ngoại. |
 | BR-PROD-01 | Mỗi sản phẩm có một SKU duy nhất. |
 | BR-PROD-02 | Tên sản phẩm là bắt buộc. |
 | BR-PROD-03 | Giá bán hiện tại không được âm. |
@@ -65,7 +65,7 @@ Ma trận quyền chức năng được quy định trong `scope.md`. Mọi thao
 | BR-PROD-06 | Sản phẩm đã xuất hiện trong chứng từ phải được giữ lại để bảo toàn lịch sử. Khi ngừng kinh doanh, thay đổi trạng thái thay vì xóa sản phẩm. |
 | BR-PROD-07 | Thay đổi giá bán hiện tại của sản phẩm không tự động thay đổi giá đã lưu trên các dòng đơn bán. |
 
-Cách xử lý sản phẩm ngừng kinh doanh đối với chứng từ đang nháp được ghi nhận tại mục 13 để chốt trước khi triển khai.
+Quy tắc xử lý sản phẩm ngừng kinh doanh được quy định tại mục 7 đối với phiếu nhập và mục 8 đối với đơn bán.
 
 ## 5. Nhà cung cấp
 
@@ -130,6 +130,9 @@ Cách xử lý sản phẩm ngừng kinh doanh đối với chứng từ đang n
 | BR-REC-05 | Nếu có dòng không hợp lệ hoặc thao tác xác nhận thất bại, toàn bộ lần xác nhận bị từ chối; phiếu vẫn là `DRAFT` và tồn kho không đổi. |
 | BR-REC-06 | Xác nhận lại phiếu đã xác nhận không được cộng thêm tồn kho. |
 | BR-REC-07 | Hủy phiếu nhập nháp không thay đổi tồn kho. |
+| BR-REC-08 | Không được thêm sản phẩm đã ngừng kinh doanh vào phiếu nhập nháp. |
+| BR-REC-09 | Nếu sản phẩm ngừng kinh doanh sau khi đã được thêm vào phiếu nháp, giữ dòng để tra cứu nhưng không cho sửa số lượng hoặc giá nhập của dòng đó. Người có quyền được xóa dòng hoặc hủy phiếu. |
+| BR-REC-10 | Khi xác nhận, phải kiểm tra lại trạng thái kinh doanh của tất cả sản phẩm. Nếu có sản phẩm đã ngừng kinh doanh, từ chối toàn bộ lần xác nhận và không thay đổi tồn kho. Phải xóa dòng không hợp lệ và bảo đảm phiếu còn ít nhất một dòng hợp lệ trước khi xác nhận. Phiếu đã xác nhận trước thời điểm sản phẩm ngừng kinh doanh được giữ nguyên. |
 
 ### Ví dụ
 
@@ -155,6 +158,11 @@ Kho đang có 20 bàn phím. Nhân viên tạo phiếu nhập thêm 10 bàn phí
 | BR-SALE-09 | Xác nhận lại đơn đã xác nhận không được trừ thêm tồn kho. |
 | BR-SALE-10 | Hủy đơn nháp không làm thay đổi tồn kho. |
 | BR-SALE-11 | Xác nhận đơn ghi nhận hàng đã bán và xuất kho; không thể hiện trạng thái thanh toán, công nợ hoặc giao hàng. |
+| BR-SALE-12 | Không được thêm sản phẩm đã ngừng kinh doanh vào đơn bán nháp. |
+| BR-SALE-13 | Nếu sản phẩm ngừng kinh doanh sau khi đã được thêm vào đơn nháp, giữ dòng để tra cứu nhưng không cho sửa số lượng của dòng đó. Người có quyền được xóa dòng hoặc hủy đơn. |
+| BR-SALE-14 | Khi xác nhận, phải kiểm tra lại trạng thái kinh doanh của tất cả sản phẩm. Nếu có sản phẩm đã ngừng kinh doanh, từ chối toàn bộ lần xác nhận và không thay đổi tồn kho. Phải xóa dòng không hợp lệ; các dòng còn lại phải hợp lệ và đủ tồn trước khi xác nhận. Đơn đã xác nhận trước thời điểm sản phẩm ngừng kinh doanh được giữ nguyên. |
+| BR-SALE-15 | Không cho phép nhập hoặc chỉnh sửa thủ công giá bán trên dòng đơn. Xác nhận đơn sử dụng giá đã lưu, không lấy lại giá hiện tại. Muốn lấy giá hiện tại cho một sản phẩm trong đơn nháp, phải xóa dòng cũ và thêm lại sản phẩm. |
+| BR-SALE-16 | Cho phép lưu số lượng trên đơn nháp lớn hơn tồn kho hiện tại. Kiểm tra đủ tồn mang tính quyết định được thực hiện khi xác nhận trong giao dịch; đơn nháp không giữ hàng. |
 
 ### Ví dụ thiếu hàng
 
@@ -202,22 +210,29 @@ Dữ liệu cache hoặc số tồn từng hiển thị cho người dùng khôn
 
 | Mã | Quy tắc |
 |---|---|
-| BR-KNOW-01 | Chỉ ADMIN được đưa tài liệu vào hệ thống kiến thức. |
-| BR-KNOW-02 | ADMIN và STAFF được hỏi đáp dựa trên các tài liệu đã xử lý và sẵn sàng truy xuất. |
-| BR-KNOW-03 | Nội dung trả lời về sản phẩm hoặc chính sách phải dựa trên tài liệu truy xuất được và kèm nguồn tham chiếu. |
-| BR-KNOW-04 | Khi không có đủ căn cứ, hệ thống phải nêu rõ không tìm thấy hoặc không đủ thông tin, không tự tạo thông số hay chính sách. |
-| BR-KNOW-05 | Không suy đoán giá bán hoặc tồn kho hiện tại từ tài liệu; các thông tin này thuộc chức năng tra cứu nghiệp vụ. |
-| BR-KNOW-06 | Chức năng hỏi đáp không được tự tạo, xác nhận hoặc sửa chứng từ và tồn kho. |
-| BR-KNOW-07 | Trả lời về chính sách bảo hành không đồng nghĩa với tiếp nhận hoặc phê duyệt yêu cầu bảo hành. |
+| BR-KNOW-01 | Chỉ ADMIN được quản lý tài liệu tri thức, bao gồm nạp, xem danh sách, xem chi tiết và trạng thái xử lý, xóa tài liệu. |
+| BR-KNOW-02 | ADMIN và STAFF được hỏi đáp dựa trên tài liệu đã xử lý thành công và sẵn sàng truy xuất. |
+| BR-KNOW-03 | Câu trả lời về hướng dẫn sử dụng hệ thống và quy trình nghiệp vụ phải dựa trên nội dung truy xuất được, kèm nguồn tham chiếu hỗ trợ câu trả lời. |
+| BR-KNOW-04 | Khi tài liệu không đủ căn cứ hoặc có nội dung mâu thuẫn chưa giải quyết, hệ thống phải nói rõ, không tự tạo quy tắc nghiệp vụ. |
+| BR-KNOW-05 | Không truy vấn hoặc suy đoán giá bán, tồn kho tức thời hay trạng thái của một chứng từ cụ thể qua RAG. Những thông tin này được tra cứu qua API nghiệp vụ tương ứng. |
+| BR-KNOW-06 | Chức năng hỏi đáp không được tự tạo, sửa, hủy hoặc xác nhận chứng từ; không được thay đổi sản phẩm hoặc tồn kho. |
+| BR-KNOW-07 | Câu hỏi ngoài phạm vi hướng dẫn hệ thống và quy trình nghiệp vụ phải được thông báo là ngoài phạm vi; không mở rộng chức năng thông qua câu trả lời của mô hình. |
+| BR-KNOW-08 | Kho tri thức dùng chung cho ADMIN và STAFF. Chỉ nạp tài liệu phù hợp để cung cấp nội dung cho cả hai vai trò; không nạp mật khẩu, token, khóa API hoặc thông tin bị hạn chế với STAFF. |
+| BR-KNOW-09 | Tài liệu đang chờ xử lý, đang xử lý hoặc xử lý thất bại không được dùng làm nguồn trả lời. |
+| BR-KNOW-10 | Sau khi xóa tài liệu thành công, các request hỏi đáp bắt đầu sau đó không được sử dụng tài liệu này. Request đã lấy nội dung trước thời điểm xóa có thể hoàn tất theo giới hạn của API. |
+| BR-KNOW-11 | Nguồn trích dẫn phải thuộc các đoạn thực sự được truy xuất; không tạo giả tên tài liệu, định danh, đường dẫn hoặc đoạn trích. |
+| BR-KNOW-12 | Nội dung tài liệu là dữ liệu tham khảo, không phải chỉ dẫn có quyền thay đổi hành vi, phân quyền hoặc cấu hình hệ thống. |
+| BR-KNOW-13 | Mỗi câu hỏi là một request độc lập; phiên bản đầu chưa sử dụng lịch sử hội thoại nhiều lượt. |
+| BR-KNOW-14 | Phải phân biệt thiếu căn cứ trong tài liệu với lỗi dịch vụ. Không báo thiếu kiến thức để che giấu lỗi embedding, truy xuất hoặc sinh câu trả lời. |
 
-Chất lượng trả lời và dẫn nguồn phải được đánh giá bằng bộ câu hỏi kiểm thử; không mặc định mọi câu trả lời sinh ra đều chính xác.
+Chất lượng câu trả lời và nguồn trích dẫn phải được đánh giá bằng bộ câu hỏi kiểm thử. Không mặc định mọi câu trả lời do mô hình sinh ra đều chính xác.
 
 ## 11. Các tình huống kiểm thử trọng tâm
 
 | Tình huống | Kết quả mong đợi | Quy tắc liên quan |
 |---|---|---|
 | Tạo sản phẩm có SKU đã tồn tại | Từ chối, không tạo sản phẩm trùng | BR-PROD-01 |
-| Xóa danh mục đang có sản phẩm | Từ chối | BR-CAT-04 |
+| Kiểm tra phạm vi quản lý danh mục | Không cung cấp API xóa danh mục; khóa ngoại bảo vệ liên kết sản phẩm | BR-CAT-04 |
 | STAFF xác nhận phiếu của người khác | Từ chối, không đổi dữ liệu | BR-AUTH-08 |
 | Xác nhận chứng từ không có dòng hàng | Từ chối, chứng từ giữ `DRAFT` | BR-DOC-02 |
 | Thêm cùng sản phẩm thành hai dòng trong một phiếu | Không cho lưu hai dòng trùng sản phẩm | BR-DOC-04 |
@@ -232,6 +247,15 @@ Chất lượng trả lời và dẫn nguồn phải được đánh giá bằng
 | Đổi giá sản phẩm sau khi thêm vào đơn | Giá đã lưu trên dòng đơn không tự đổi | BR-PROD-07 |
 | Tra cứu lịch sử | Chỉ có chứng từ đã xác nhận | BR-INV-06 |
 | Hỏi nội dung không có trong tài liệu | Nêu thiếu căn cứ | BR-KNOW-04 |
+| Thêm sản phẩm đã ngừng kinh doanh vào phiếu nhập hoặc đơn bán | Từ chối, không tạo dòng | BR-REC-08, BR-SALE-12 |
+| Sản phẩm ngừng kinh doanh sau khi được thêm vào chứng từ nháp | Không cho xác nhận; không thay đổi tồn kho | BR-REC-10, BR-SALE-14 |
+| Sản phẩm ngừng kinh doanh sau khi chứng từ đã xác nhận | Chứng từ và tác động tồn kho trước đó được giữ nguyên | BR-REC-10, BR-SALE-14 |
+| Client gửi giá bán khi thêm hoặc sửa dòng đơn | Từ chối trường không được phép | BR-SALE-15 |
+| Số lượng đơn nháp vượt tồn hiện tại | Cho lưu nháp; khi xác nhận phải kiểm tra đủ tồn | BR-SALE-16 |
+| Hỏi tồn kho tức thời qua RAG | Thông báo ngoài phạm vi, hướng tới chức năng tra cứu tồn | BR-KNOW-05 |
+| Tài liệu chưa xử lý xong hoặc xử lý lỗi | Không được dùng làm nguồn trả lời | BR-KNOW-09 |
+| Hỏi đáp mới sau khi xóa tài liệu | Không sử dụng tài liệu đã xóa | BR-KNOW-10 |
+| Tài liệu chứa chỉ dẫn yêu cầu bỏ qua phân quyền | Không thực hiện theo chỉ dẫn trong tài liệu | BR-KNOW-12 |
 
 ## 12. Nguyên tắc triển khai và cập nhật
 
@@ -243,16 +267,35 @@ Chất lượng trả lời và dẫn nguồn phải được đánh giá bằng
 - Khi thay đổi quy tắc, phải cập nhật tài liệu, phần triển khai và test liên quan trong cùng phạm vi công việc.
 - Không tái sử dụng mã quy tắc đã có cho một ý nghĩa khác.
 
-## 13. Các chi tiết cần chốt trước khi triển khai
+## 13. Các quyết định đã thống nhất và nội dung còn cần chốt
 
-Các điểm dưới đây chưa được quyết định trong phạm vi thiết kế hiện tại. Cần ghi nhận quyết định trước khi triển khai API liên quan.
+### 13.1. Các quyết định đã thống nhất
+
+| Nội dung | Quyết định |
+|---|---|
+| Sản phẩm ngừng kinh doanh | Không thêm vào phiếu nhập hoặc đơn bán; không xác nhận chứng từ nháp còn chứa sản phẩm này. Chứng từ đã xác nhận được giữ nguyên. |
+| Giá bán trên đơn nháp | Lấy giá khi thêm dòng; không chỉnh giá thủ công; sửa số lượng hoặc xác nhận không lấy lại giá. |
+| Số lượng trên đơn nháp | Có thể vượt tồn hiện tại; không giữ hàng; bắt buộc kiểm tra đủ tồn khi xác nhận. |
+| Mật khẩu mới | Từ 15 đến 64 Unicode code point; không tự trim hoặc biến đổi; không bắt buộc tổ hợp chữ hoa, chữ thường, số và ký tự đặc biệt. |
+| Mật khẩu ban đầu | Mỗi nhân viên nhận mật khẩu ngẫu nhiên riêng do ADMIN chuẩn bị; không dùng chung hoặc đặt theo quy luật dễ đoán. |
+| Đổi mật khẩu | Phải xác minh mật khẩu hiện tại; mật khẩu mới phải khác mật khẩu hiện tại. |
+| Băm mật khẩu | Sử dụng Argon2id; cấu hình kỹ thuật được đồng bộ tại tài liệu xác thực. |
+| JWT | Access token có thời hạn 1 giờ; chưa có refresh token. |
+| Sau đổi mật khẩu | Mật khẩu cũ không đăng nhập được; token đã cấp vẫn có hiệu lực tới khi hết hạn nếu tài khoản còn hoạt động. |
+| Sau khóa tài khoản | Request kiểm tra trạng thái sau khi khóa được commit phải bị từ chối; không tự hủy request đã vượt qua kiểm tra trước đó. |
+| Phạm vi RAG | Hướng dẫn hệ thống và quy trình nghiệp vụ; không truy vấn số liệu tức thời hoặc thực hiện giao dịch. |
+
+Chính sách mật khẩu mới áp dụng khi cấp tài khoản và đổi mật khẩu. Không dùng chính sách độ dài mới để tự động từ chối việc xác minh mật khẩu hiện tại của tài khoản đã tồn tại.
+
+### 13.2. Các nội dung còn cần chốt
 
 | Nội dung | Quyết định cần làm rõ |
 |---|---|
-| Sản phẩm ngừng kinh doanh | Có được nhập thêm hàng không; xử lý thế nào với dòng hàng đã nằm trong chứng từ nháp |
-| Giá trên đơn nháp | Có cho phép điều chỉnh giá thủ công không; nếu có thì vai trò nào được phép |
-| Chuẩn hóa dữ liệu duy nhất | Cách xử lý chữ hoa/thường và khoảng trắng đối với email, SKU và tên danh mục |
-| Chính sách mật khẩu và phiên | Điều kiện mật khẩu; hiệu lực phiên sau đổi mật khẩu và khóa tài khoản |
-| Đơn vị tiền tệ | Đơn vị tiền sử dụng và quy tắc làm tròn nếu có |
+| Chuẩn hóa dữ liệu duy nhất | Quy tắc chữ hoa/thường, dấu và khoảng trắng đối với email, SKU, tên danh mục; đồng bộ với collation. |
+| Đơn vị tiền tệ | Đơn vị tiền sử dụng và việc có cho phép phần lẻ hay không. |
+| Giới hạn chứng từ | Số dòng tối đa trong một phiếu nhập hoặc đơn bán. |
+| Khởi tạo ADMIN đầu tiên | Cơ chế khởi tạo và cấp thông tin đăng nhập an toàn, không mở API tạo ADMIN công khai. |
 
-Các quyết định bổ sung không được làm thay đổi phạm vi dự án mà không cập nhật tài liệu liên quan.
+Quy ước hiện tại của API là truyền giá dưới dạng chuỗi thập phân và từ chối đầu vào có quá 2 chữ số thập phân, không tự làm tròn.
+
+Các quyết định bổ sung phải được cập nhật đồng bộ vào tài liệu database, kiến trúc, API và kiểm thử liên quan.
