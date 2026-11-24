@@ -301,7 +301,7 @@ Lưu ý về số lượng liên kết:
 | Thông tin xác nhận phù hợp trạng thái | CHECK kết hợp xử lý nghiệp vụ |
 | Chỉ sửa/hủy/xác nhận chứng từ nháp | Service và cơ chế kiểm soát đồng thời |
 | Chứng từ xác nhận có ít nhất một dòng | Service |
-| STAFF chỉ thao tác chứng từ mình tạo | Kiểm tra danh tính và quyền tại backend |
+| STAFF chỉ được sửa, hủy và xác nhận chứng từ mình tạo; được xem chứng từ theo phạm vi phân quyền | Kiểm tra danh tính và quyền tại backend |
 | Không cập nhật dở dang | Transaction |
 | Không xác nhận trùng hoặc bán vượt tồn | Transaction và khóa/cập nhật có điều kiện |
 | Bản ghi tồn luôn đi cùng sản phẩm | Transaction khi tạo sản phẩm |
@@ -310,6 +310,69 @@ Lưu ý về số lượng liên kết:
 Không coi validation ở ứng dụng là thay thế cho ràng buộc database, hoặc ngược lại.
 
 Chi tiết chuẩn hóa email, SKU và tên danh mục cần thống nhất với collation trước khi viết migration chính thức.
+
+### 6.1. Ràng buộc phải có trong migration
+
+Migration phải triển khai các ràng buộc sau, không chỉ mô tả bằng ghi chú:
+
+| Bảng | Ràng buộc |
+|---|---|
+| `users` | UNIQUE cho `email`; các trường bắt buộc phải NOT NULL |
+| `categories` | UNIQUE cho `name` |
+| `products` | UNIQUE cho `sku`; CHECK `sale_price >= 0`; khóa ngoại tới danh mục |
+| `inventory` | `product_id` là PK và FK tới sản phẩm; CHECK `quantity >= 0` |
+| `stock_receipt_items` | UNIQUE `(receipt_id, product_id)`; CHECK `quantity > 0`; CHECK `unit_cost >= 0` |
+| `sales_order_items` | UNIQUE `(order_id, product_id)`; CHECK `quantity > 0`; CHECK `unit_price >= 0` |
+| `stock_receipts` | Trạng thái và thông tin xác nhận phải nhất quán |
+| `sales_orders` | Trạng thái và thông tin xác nhận phải nhất quán |
+
+Đối với phiếu nhập và đơn bán:
+
+- Khi `status = 'CONFIRMED'`, `confirmed_by` và `confirmed_at` đều phải khác NULL.
+- Khi `status` là `DRAFT` hoặc `CANCELLED`, `confirmed_by` và `confirmed_at` đều phải là NULL.
+
+Biểu thức CHECK tương ứng:
+
+```sql
+CHECK (
+    (
+        status = 'CONFIRMED'
+        AND confirmed_by IS NOT NULL
+        AND confirmed_at IS NOT NULL
+    )
+    OR
+    (
+        status IN ('DRAFT', 'CANCELLED')
+        AND confirmed_by IS NULL
+        AND confirmed_at IS NULL
+    )
+)
+```
+
+Khóa ngoại và chính sách RESTRICT phải được triển khai theo mục 7.
+
+CHECK không thay thế kiểm tra nghiệp vụ trong Service. Các điều kiện như chứng từ có ít nhất một dòng, sản phẩm đang kinh doanh, đủ tồn và chống xác nhận trùng phải được xử lý trong giao dịch phù hợp.
+
+### 6.2. Quan hệ giữa DBML và migration
+
+`diagrams/erd.dbml` mô tả cấu trúc bảng, khóa và quan hệ để dựng sơ đồ.
+
+Các `note` như “tồn kho không âm” hoặc “số nguyên dương” chỉ là mô tả, không tự tạo ràng buộc CHECK trong database.
+
+SQL xuất từ công cụ vẽ ERD phải được rà soát và bổ sung trước khi sử dụng làm migration.
+
+Migration phải xác định đầy đủ:
+
+- CHECK, UNIQUE, NOT NULL và FOREIGN KEY.
+- Hành vi ON DELETE và ON UPDATE.
+- Charset và collation.
+- Cách cập nhật `updated_at`.
+- Các index cần thiết.
+
+Giá trị mặc định `CURRENT_TIMESTAMP` chỉ khởi tạo thời gian khi thêm bản ghi; không tự bảo đảm `updated_at` thay đổi ở những lần cập nhật sau.
+
+Việc cập nhật `updated_at` phải tuân thủ hợp đồng API: thay đổi khi dữ liệu thực tế thay đổi, giữ nguyên khi thao tác không làm thay đổi dữ liệu.
+
 
 ## 7. Chính sách xóa và cập nhật khóa
 
