@@ -239,7 +239,11 @@ Response không được chứa thông tin kết nối cơ sở dữ liệu, câ
 - Các dòng phiếu nhập và đơn bán liên kết sản phẩm bằng `product_id`.
 - Thay đổi giá bán sản phẩm không cập nhật `sales_order_items.unit_price` đã lưu.
 - Ngừng kinh doanh không tự động sửa trạng thái phiếu nhập, đơn bán hoặc số lượng tồn kho.
-- Việc một sản phẩm đã ngừng kinh doanh có được thêm vào hoặc xác nhận trong chứng từ hay không phải tuân theo quy tắc của API nhập hàng và bán hàng.
+- Không được thêm sản phẩm đã ngừng kinh doanh vào phiếu nhập hoặc đơn bán nháp.
+- Nếu sản phẩm ngừng kinh doanh sau khi được thêm vào chứng từ nháp, dòng hàng vẫn được giữ để tra cứu nhưng không được chỉnh sửa. Người có quyền được xóa dòng hoặc hủy chứng từ.
+- Khi xác nhận, phải kiểm tra lại trạng thái kinh doanh của tất cả sản phẩm. Nếu có sản phẩm đã ngừng kinh doanh, từ chối toàn bộ lần xác nhận và không thay đổi tồn kho.
+- Muốn xác nhận, phải xóa dòng không hợp lệ; chứng từ phải còn ít nhất một dòng hợp lệ và đáp ứng các điều kiện nghiệp vụ tương ứng. Đơn bán phải đủ tồn cho tất cả mặt hàng.
+- Chứng từ đã xác nhận trước thời điểm sản phẩm ngừng kinh doanh được giữ nguyên; không hoàn tồn hoặc thay đổi giá đã lưu.
 - API danh mục và sản phẩm không tự thực hiện các thao tác xác nhận chứng từ.
 
 Thiết kế hiện tại lưu giá trên dòng chứng từ nhưng không lưu bản sao tên sản phẩm hoặc SKU. Vì vậy, dữ liệu tra cứu chứng từ thông qua bảng `products` có thể hiển thị tên hoặc SKU hiện tại sau khi chúng được chỉnh sửa.
@@ -920,10 +924,10 @@ Các lựa chọn dưới đây được mô tả trong bản thiết kế này 
 | Tìm kiếm | Theo chuỗi con của tên hoặc SKU |
 | Phân trang | `page = 1`, `pageSize = 20`, tối đa `100` |
 
-Các nội dung cần xác định thêm:
+Các nội dung cần đối chiếu và theo dõi:
 
 1. **Collation cụ thể của cơ sở dữ liệu:** quyết định cách phân biệt chữ hoa/thường và dấu khi kiểm tra tên danh mục, SKU và tìm kiếm. Không được giả định quy tắc so sánh khi chưa chốt collation.
-2. **Sản phẩm ngừng kinh doanh trong chứng từ:** quy định cụ thể tại `purchasing.md` và `sales.md`, bao gồm chứng từ nháp đã chứa sản phẩm trước khi ngừng kinh doanh.
+2. **Sản phẩm ngừng kinh doanh trong chứng từ — đã chốt:** áp dụng quy tắc tại mục 6.3; chi tiết thao tác và mã lỗi được quy định trong `purchasing.md` và `sales.md`.
 3. **Quy ước lỗi dùng chung:** đối chiếu tên mã lỗi và cấu trúc `details` với `auth.md`, `users.md` trước khi triển khai.
 4. **Giới hạn request body:** cấu hình tập trung và ghi tại tài liệu kiến trúc.
 5. **Cache:** thiết kế riêng cơ chế vô hiệu hóa và cách xử lý dữ liệu cũ khi triển khai Redis.
