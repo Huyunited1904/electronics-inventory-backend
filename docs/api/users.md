@@ -123,7 +123,7 @@ Quy ước:
 
 - `code` là mã ổn định để phía gọi API xử lý.
 - `message` là thông báo dễ hiểu.
-- `details` chỉ có khi cần mô tả lỗi đầu vào.
+- `details` là trường không bắt buộc, dùng để mô tả chi tiết lỗi đầu vào hoặc lỗi nghiệp vụ. Các phần tử sử dụng cấu trúc `field` và `message`; không chứa mật khẩu, token hoặc thông tin nội bộ.
 - Không đưa lại mật khẩu, token hoặc thông tin nội bộ vào lỗi.
 - Lỗi database ngoài dự kiến không được giả thành lỗi validation.
 
@@ -135,7 +135,19 @@ Quy ước:
 - Không tự động trim hoặc biến đổi mật khẩu.
 - Chỉ lưu mật khẩu đã băm.
 
-Chính sách độ dài mật khẩu, thư viện băm và cách so sánh email chưa được chốt hoàn toàn. Phải thống nhất trước khi triển khai các API liên quan.
+Chính sách mật khẩu được thống nhất tại mục 2.3 của `auth.md`:
+
+- Mật khẩu mới có độ dài từ 15 đến 64 Unicode code point.
+- Không tự trim, biến đổi hoặc cắt ngắn mật khẩu.
+- Không bắt buộc tổ hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
+- Sử dụng Argon2id thông qua thư viện `argon2` của Node.js.
+- Cấu hình băm ban đầu: `memoryCost = 19456` KiB, `timeCost = 2`, `parallelism = 1`.
+- Để thư viện sinh salt ngẫu nhiên; lưu chuỗi hash mã hóa đầy đủ vào `users.password_hash`.
+- Không áp dụng giới hạn 72 byte của phương án bcrypt cũ.
+
+Mật khẩu ban đầu phải được cấp riêng, ngẫu nhiên theo mục 4.6.
+
+Quy tắc chuẩn hóa chữ hoa/thường của email và collation vẫn cần được thống nhất giữa API cấp tài khoản, API đăng nhập và database trước khi triển khai.
 
 ## 4. Cấp tài khoản nhân viên
 
@@ -501,7 +513,7 @@ Các lỗi dưới đây áp dụng cho mọi API tương ứng trong tài liệ
 | 403 | `FORBIDDEN` | Tài khoản hoạt động nhưng không có quyền ADMIN |
 | 413 | `PAYLOAD_TOO_LARGE` | Body vượt giới hạn cấu hình |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Body không sử dụng kiểu nội dung JSON được hỗ trợ |
-| 500 | `INTERNAL_ERROR` | Lỗi ngoài dự kiến |
+| 500 | `INTERNAL_SERVER_ERROR` | Lỗi ngoài dự kiến |
 
 Lỗi liên quan body chỉ áp dụng cho request có body. GET không yêu cầu `Content-Type: application/json`.
 
@@ -649,8 +661,8 @@ Không yêu cầu thêm:
 | API tạo chỉ cấp STAFF | Cụ thể hóa chức năng cấp tài khoản nhân viên |
 | Không xóa tài khoản có lịch sử | Đã xác định trong nghiệp vụ |
 | JWT và kiểm tra trạng thái từ MySQL | Đã chốt trong auth.md |
-| Chính sách mật khẩu mới | Chưa chốt |
-| Thư viện băm và cấu hình chi phí | Chưa chốt |
+| Chính sách mật khẩu mới | Đã chốt: 15–64 Unicode code point; không trim, biến đổi hoặc cắt ngắn; tham chiếu auth.md mục 2.3 |
+| Thư viện băm và cấu hình chi phí | Đã chốt: argon2, thuật toán Argon2id; memoryCost = 19456 KiB, timeCost = 2, parallelism = 1 |
 | Chuẩn hóa chữ hoa/thường email và collation | Chưa chốt |
 | Cách khởi tạo ADMIN đầu tiên | Chưa chốt; thực hiện qua cơ chế khởi tạo riêng, không mở API tạo ADMIN công khai |
 
