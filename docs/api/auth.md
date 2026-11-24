@@ -70,7 +70,7 @@ Quy ước:
 
 - `code`: mã lỗi ổn định để phía gọi API xử lý.
 - `message`: thông báo dễ hiểu, không dùng làm khóa điều khiển logic.
-- `details`: chỉ có khi cần mô tả lỗi đầu vào.
+- `details`: trường không bắt buộc, dùng để mô tả chi tiết lỗi đầu vào hoặc lỗi nghiệp vụ. Các phần tử sử dụng cấu trúc `field` và `message`; không chứa mật khẩu, token hoặc thông tin nội bộ.
 - Không đưa lại giá trị mật khẩu đã gửi vào thông báo lỗi.
 
 Các ví dụ bên dưới minh họa cấu trúc; giá trị token và tài khoản không phải dữ liệu thật.
@@ -100,22 +100,49 @@ Backend phải:
 
 Việc đổi mật khẩu không vô hiệu hóa access token đã cấp. Token cũ vẫn dùng được tới khi hết hạn nếu tài khoản còn hoạt động.
 
-### 2.3. Chính sách mật khẩu mới đề xuất
+### 2.3. Chính sách mật khẩu đã thống nhất
 
-**Trạng thái: cần xác nhận trước khi triển khai.**
+Áp dụng khi cấp tài khoản và khi người dùng đổi sang mật khẩu mới:
 
-Áp dụng cho mật khẩu mới và thống nhất với API cấp tài khoản sau này:
-
-- Là chuỗi có độ dài từ 12 đến 64 ký tự.
-- Không vượt quá 72 byte khi mã hóa UTF-8 để tương thích nếu lựa chọn bcrypt.
+- Mật khẩu phải là chuỗi có độ dài từ 15 đến 64 Unicode code point.
+- Cho phép ký tự Unicode, khoảng trắng và ký tự đặc biệt.
 - Không bắt buộc tổ hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
-- Không tự động trim, chuyển chữ hoa/thường hoặc biến đổi mật khẩu.
-- Mật khẩu mới không được giống mật khẩu hiện tại.
-- Chỉ lưu kết quả băm bằng thư viện phù hợp.
+- Không tự động trim, chuyển chữ hoa/thường, chuẩn hóa Unicode hoặc biến đổi mật khẩu.
+- Không được âm thầm cắt ngắn mật khẩu.
+- Khi đổi mật khẩu, mật khẩu mới phải khác mật khẩu hiện tại.
+- Mỗi nhân viên được cấp mật khẩu ban đầu ngẫu nhiên riêng theo quy trình trong `users.md`.
+- Không áp dụng giới hạn 72 byte của phương án bcrypt trước đây.
 
-Giới hạn theo byte phải được kiểm tra rõ ràng; không được âm thầm cắt ngắn mật khẩu.
+Độ dài được tính theo Unicode code point, không phải số byte UTF-8 hoặc số đơn vị UTF-16.
 
-Không áp dụng chính sách độ dài mật khẩu mới để từ chối một mật khẩu hiện tại vốn đang hợp lệ khi đăng nhập hoặc xác minh đổi mật khẩu.
+Không áp dụng chính sách độ dài mật khẩu mới để từ chối việc xác minh mật khẩu hiện tại của tài khoản đã tồn tại. Giới hạn dung lượng request vẫn áp dụng để bảo vệ hệ thống.
+
+#### Băm và xác minh mật khẩu
+
+Sử dụng Argon2id thông qua thư viện `argon2` của Node.js.
+
+Cấu hình ban đầu:
+
+| Tham số | Giá trị |
+|---|---|
+| Loại thuật toán | Argon2id |
+| `memoryCost` | 19456 KiB, tương đương 19 MiB |
+| `timeCost` | 2 |
+| `parallelism` | 1 |
+
+Quy định:
+
+- Để thư viện sinh salt ngẫu nhiên cho mỗi lần băm.
+- Lưu chuỗi hash mã hóa đầy đủ vào `users.password_hash`, bao gồm thông tin thuật toán, tham số và salt.
+- Không lưu mật khẩu gốc.
+- Sử dụng hàm xác minh của thư viện để kiểm tra mật khẩu.
+- Không so sánh trực tiếp hai chuỗi hash để xác định hai mật khẩu có giống nhau.
+- Không trả mật khẩu hoặc hash trong response.
+- Không ghi mật khẩu hoặc hash vào log.
+
+Cấu hình chi phí phải được kiểm thử trên môi trường chạy thực tế. Nếu điều chỉnh, cập nhật cấu hình và tài liệu liên quan.
+
+Chính sách này không yêu cầu bổ sung cột vào bảng `users`.
 
 ## 3. API đăng nhập
 
@@ -202,7 +229,7 @@ Cache-Control: no-store
 | 403 | `ACCOUNT_DISABLED` | Thông tin đăng nhập đúng nhưng tài khoản bị khóa |
 | 413 | `PAYLOAD_TOO_LARGE` | Request vượt giới hạn body được cấu hình |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Request body không sử dụng kiểu nội dung JSON được hỗ trợ |
-| 500 | `INTERNAL_ERROR` | Lỗi hệ thống ngoài dự kiến |
+| 500 | `INTERNAL_SERVER_ERROR` | Lỗi hệ thống ngoài dự kiến |
 
 Ví dụ sai thông tin đăng nhập:
 
@@ -322,7 +349,7 @@ Sau khi thành công:
 | 409 | `ACCOUNT_STATE_CHANGED` | Cập nhật bị từ chối vì dữ liệu tài khoản thay đổi đồng thời |
 | 413 | `PAYLOAD_TOO_LARGE` | Request vượt giới hạn body |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Kiểu nội dung request không được hỗ trợ |
-| 500 | `INTERNAL_ERROR` | Lỗi hệ thống ngoài dự kiến |
+| 500 | `INTERNAL_SERVER_ERROR` | Lỗi hệ thống ngoài dự kiến |
 
 Ví dụ mật khẩu hiện tại sai:
 
@@ -418,18 +445,41 @@ Khi triển khai giới hạn tần suất, cần chốt ngưỡng và cập nh�
 
 Nếu request vi phạm nhiều điều kiện, thứ tự kiểm tra có thể quyết định lỗi được trả trước. Mỗi test tập trung vào một điều kiện và không yêu cầu backend trả toàn bộ lỗi nghiệp vụ cùng lúc.
 
-## 8. Các điểm cần xác nhận trước khi triển khai
+## 8. Các quyết định đã thống nhất và nội dung còn cần chốt
 
-| Nội dung | Trạng thái |
+### 8.1. Các quyết định đã thống nhất
+
+| Nội dung | Quyết định |
 |---|---|
-| JWT access token 1 giờ | Đã chốt |
-| Không refresh token | Đã chốt |
-| Kiểm tra trạng thái và vai trò trong MySQL | Đã chốt |
-| Token cũ còn hiệu lực sau đổi mật khẩu | Đã chốt |
-| Không bổ sung cột database | Giữ nguyên thiết kế |
-| Mật khẩu mới 12–64 ký tự, tối đa 72 byte UTF-8 | Đề xuất trong tài liệu này, cần xác nhận |
-| Chuẩn hóa và so sánh email | Cần thống nhất với API cấp tài khoản và database |
-| Thư viện băm mật khẩu, thuật toán JWT và cấu hình tương ứng | Chốt khi triển khai |
-| Giới hạn tần suất và dung lượng request | Chốt khi cấu hình middleware |
+| JWT access token | Thời hạn 1 giờ |
+| Refresh token | Chưa triển khai trong phiên bản đầu |
+| Kiểm tra tài khoản | Đọc trạng thái và vai trò hiện tại từ MySQL |
+| Token sau đổi mật khẩu | Vẫn có hiệu lực tới khi hết hạn nếu tài khoản còn hoạt động |
+| Tài khoản bị khóa | Request kiểm tra trạng thái sau khi khóa được commit phải bị từ chối |
+| Độ dài mật khẩu mới | Từ 15 đến 64 Unicode code point |
+| Xử lý mật khẩu | Không trim, biến đổi hoặc cắt ngắn |
+| Thành phần mật khẩu | Không bắt buộc tổ hợp chữ hoa, chữ thường, số và ký tự đặc biệt |
+| Mật khẩu ban đầu | Ngẫu nhiên riêng cho từng nhân viên, theo quy trình trong users.md |
+| Mật khẩu khi đổi | Phải khác mật khẩu hiện tại |
+| Thư viện băm | Thư viện argon2 của Node.js |
+| Thuật toán băm | Argon2id |
+| Cấu hình băm ban đầu | memoryCost = 19456 KiB, timeCost = 2, parallelism = 1 |
+| Lưu trữ mật khẩu | Chuỗi hash mã hóa đầy đủ trong users.password_hash |
+| Mã lỗi nội bộ | INTERNAL_SERVER_ERROR, HTTP 500 |
+| Schema | Không bổ sung cột hoặc bảng cho các quyết định xác thực hiện tại |
 
-Khi các chính sách được xác nhận, cập nhật đồng bộ tài liệu quy tắc nghiệp vụ và OpenAPI. Không âm thầm triển khai khác với hợp đồng đã công bố.
+### 8.2. Các nội dung còn cần chốt
+
+| Nội dung | Yêu cầu |
+|---|---|
+| Chuẩn hóa và so sánh email | Đồng bộ đăng nhập, cấp tài khoản và collation database |
+| Thuật toán ký JWT | Chọn và cấu hình rõ thuật toán được chấp nhận khi xác minh |
+| Quản lý khóa ký JWT | Xác định cấu hình môi trường và cách cấp khóa; không commit khóa thật |
+| Giới hạn tần suất | Xác định giới hạn cho đăng nhập và đổi mật khẩu |
+| Dung lượng request | Cấu hình giới hạn body và phản hồi khi vượt giới hạn |
+| Xung đột đổi mật khẩu đồng thời | Chốt mã lỗi cụ thể khi hash đã thay đổi trước lúc ghi; không cho ghi đè mù |
+| Khởi tạo ADMIN đầu tiên | Thống nhất cơ chế khởi tạo riêng với tài liệu users.md |
+
+Khi hoàn thiện các quyết định còn mở, cập nhật đồng bộ tài liệu kiến trúc, quy tắc nghiệp vụ, API và OpenAPI.
+
+Không âm thầm triển khai khác hợp đồng đã công bố.
