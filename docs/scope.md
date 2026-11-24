@@ -142,17 +142,21 @@ Thiết kế hiện tại không sử dụng bảng `stock_movements` riêng.
 
 ### 5.7. Hỏi đáp tài liệu bằng embedding và RAG
 
-- Chuẩn bị bộ dữ liệu mẫu gồm khoảng 5–10 tài liệu.
-- Sử dụng tài liệu thông số sản phẩm, hướng dẫn sử dụng và chính sách bán hàng/bảo hành.
-- Cung cấp luồng đưa tài liệu vào hệ thống, chia đoạn, tạo embedding và lưu phục vụ tìm kiếm.
-- Tìm các đoạn tài liệu liên quan đến câu hỏi.
-- Sử dụng nội dung tìm được để tạo câu trả lời kèm nguồn tham chiếu.
-- Thông báo không đủ căn cứ khi tài liệu không cung cấp thông tin cần thiết.
-- Có bộ câu hỏi đánh giá chất lượng truy xuất và câu trả lời.
+- Chuẩn bị bộ dữ liệu mẫu gồm khoảng 5–10 tài liệu hướng dẫn sử dụng hệ thống và quy trình nghiệp vụ nhập hàng, bán hàng, tra cứu tồn kho.
+- ADMIN được nạp tài liệu, xem danh sách, xem nội dung và trạng thái xử lý, xóa tài liệu khỏi kho tri thức.
+- Phiên bản đầu nhận nội dung văn bản qua JSON, hỗ trợ Markdown và văn bản thuần; chưa hỗ trợ PDF, DOCX hoặc OCR.
+- Xử lý tài liệu bằng cách chuẩn hóa, chia đoạn, tạo embedding và lưu phục vụ truy xuất.
+- Chỉ sử dụng tài liệu đã xử lý thành công và chưa bị xóa để trả lời.
+- ADMIN và STAFF được gửi câu hỏi độc lập về hướng dẫn và quy trình.
+- Câu trả lời phải dựa trên nội dung truy xuất được và kèm nguồn tham chiếu.
+- Nếu tài liệu không đủ căn cứ hoặc có nội dung mâu thuẫn chưa giải quyết, hệ thống phải nói rõ, không tự tạo quy tắc nghiệp vụ.
+- Có bộ câu hỏi đánh giá chất lượng truy xuất, câu trả lời và nguồn trích dẫn.
 
-RAG không được dùng để suy đoán tồn kho hoặc giá bán hiện tại. Dữ liệu giao dịch được truy xuất qua các chức năng nghiệp vụ tương ứng.
+Kho tri thức dùng chung cho ADMIN và STAFF. Không nạp tài liệu chứa mật khẩu, token, khóa API hoặc thông tin không được phép cung cấp cho STAFF.
 
-Tra cứu chính sách bảo hành không bao gồm tiếp nhận và xử lý hồ sơ bảo hành.
+RAG không truy vấn số liệu nghiệp vụ tức thời, không kiểm tra trạng thái của một chứng từ cụ thể và không tự tạo, sửa, hủy hoặc xác nhận chứng từ. Tồn kho, giá bán hiện tại và trạng thái chứng từ được tra cứu qua các API nghiệp vụ tương ứng.
+
+Phiên bản đầu chưa hỗ trợ hội thoại nhiều lượt, lưu lịch sử chat hoặc tự động đồng bộ tài liệu từ GitHub.
 
 ## 6. Nguyên tắc nghiệp vụ cốt lõi
 
