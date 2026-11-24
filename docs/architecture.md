@@ -286,6 +286,25 @@ Hệ thống sử dụng JWT access token để xác thực người dùng.
 - Token đã cấp trước khi đổi mật khẩu vẫn có hiệu lực tới khi hết hạn, nếu tài khoản còn hoạt động.
 - Phiên bản này chưa triển khai cơ chế thu hồi riêng từng token hoặc vô hiệu hóa toàn bộ token khi đổi mật khẩu.
 
+### 9.4. Chính sách mật khẩu và lưu trữ
+
+Chính sách chi tiết được quy định tại mục 2.3 của `api/auth.md` và được dùng thống nhất khi cấp tài khoản hoặc đổi mật khẩu.
+
+- Mật khẩu mới có độ dài từ 15 đến 64 Unicode code point.
+- Không tự trim, biến đổi hoặc cắt ngắn mật khẩu.
+- Không bắt buộc tổ hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
+- Mỗi nhân viên được cấp mật khẩu ban đầu ngẫu nhiên riêng theo quy trình trong `api/users.md`.
+- Khi đổi mật khẩu, phải xác minh mật khẩu hiện tại và bảo đảm mật khẩu mới khác mật khẩu hiện tại.
+- Sử dụng Argon2id thông qua thư viện `argon2` của Node.js.
+- Cấu hình băm ban đầu: `memoryCost = 19456` KiB, `timeCost = 2`, `parallelism = 1`.
+- Để thư viện sinh salt ngẫu nhiên và lưu chuỗi hash mã hóa đầy đủ trong `users.password_hash`.
+- Không áp dụng giới hạn 72 byte của phương án bcrypt cũ.
+- Không trả mật khẩu hoặc hash trong response và không ghi chúng vào log.
+
+Cấu hình chi phí băm phải được kiểm thử trên môi trường thực tế. Khi thay đổi, cập nhật đồng bộ cấu hình và tài liệu xác thực.
+
+Các quyết định này không yêu cầu bổ sung cột hoặc bảng vào thiết kế tài khoản hiện tại.
+
 ## 10. Caching
 
 ### 10.1. Phạm vi
@@ -461,14 +480,34 @@ Chi tiết endpoint và trường log được cụ thể hóa khi dựng nền 
 
 | Nội dung | Thời điểm cần chốt |
 |---|---|
-| Yêu cầu độ dài mật khẩu và cách khởi tạo ADMIN đầu tiên | Trước khi triển khai users/auth |
-| Chi tiết khóa và cập nhật tồn | Trước khi triển khai xác nhận chứng từ |
+| Chuẩn hóa email, SKU, tên danh mục và collation | Trước khi viết migration và validation liên quan |
+| Cách khởi tạo ADMIN đầu tiên | Trước khi triển khai và kiểm thử luồng đăng nhập |
+| Thuật toán ký JWT và quản lý khóa ký | Trước khi triển khai xác thực |
+| Giới hạn tần suất và dung lượng request | Trước khi công khai môi trường demo |
+| Đơn vị tiền tệ và việc sử dụng phần lẻ | Trước khi triển khai giá sản phẩm và tính tiền chứng từ |
+| Số dòng tối đa trong phiếu nhập và đơn bán | Trước khi triển khai quản lý dòng và xác nhận chứng từ |
+| Câu lệnh khóa, thời gian chờ và retry khi xung đột | Trước khi triển khai xác nhận chứng từ |
 | TTL, cache key và xử lý dữ liệu cũ | Trước khi triển khai caching |
-| Vector store, embedding, LLM và lưu tài liệu | Trước khi triển khai knowledge |
+| Lưu tài liệu, trạng thái xử lý, tác vụ nền và vector | Trước khi triển khai knowledge |
+| Model embedding, LLM, truy xuất và kiểm tra trích dẫn | Trước khi triển khai hỏi đáp RAG |
 | Môi trường demo, registry và secret triển khai | Khi dựng Docker/CD ban đầu |
-| Các quy tắc nghiệp vụ còn mở trong business-rules.md, trừ chính sách token đã chốt tại mục 9 | Trước khi triển khai API liên quan |
 
-Cơ chế JWT, thời hạn token và hành vi sau khi khóa tài khoản hoặc đổi mật khẩu đã được xác định tại mục 9.
+Các quyết định đã thống nhất:
+
+- JWT access token có thời hạn 1 giờ; chưa triển khai refresh token.
+- Kiểm tra trạng thái và vai trò hiện tại của tài khoản từ MySQL.
+- Token đã cấp vẫn có hiệu lực sau đổi mật khẩu nếu chưa hết hạn và tài khoản còn hoạt động.
+- Chính sách mật khẩu và Argon2id được quy định tại mục 9.4.
+- Phiếu nhập và đơn bán chỉ được sửa khi còn nháp.
+- Không xác nhận chứng từ chứa sản phẩm đã ngừng kinh doanh.
+- Giá bán được lưu khi thêm dòng; không tự thay đổi khi sửa số lượng hoặc xác nhận.
+- Đơn nháp không giữ hàng; xác nhận bán phải kiểm tra đủ tồn trong giao dịch.
+- API nhập và bán đã xác định thứ tự khóa: chứng từ, sản phẩm theo ID tăng dần, rồi tồn kho theo ID sản phẩm tăng dần.
+- RAG chỉ phục vụ hướng dẫn và quy trình, không truy vấn số liệu tức thời hoặc thực hiện giao dịch.
+
+Chi tiết hợp đồng được mô tả trong các tài liệu API tương ứng. Cần kiểm chứng cơ chế giao dịch và khóa bằng integration test trên MySQL.
+
+Khi hoàn thiện một quyết định còn mở, cập nhật vào phần thiết kế liên quan và loại bỏ khỏi danh sách chờ.
 
 Các quyết định có ảnh hưởng đáng kể phải được ghi nhận trong tài liệu hoặc issue, kèm lý do lựa chọn và giới hạn.
 
