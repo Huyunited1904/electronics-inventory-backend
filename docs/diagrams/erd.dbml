@@ -1,3 +1,9 @@
+// Sơ đồ mô tả 9 bảng nghiệp vụ cốt lõi.
+// Các note mô tả điều kiện dữ liệu không thay thế CHECK trong migration.
+// Migration phải triển khai đầy đủ ràng buộc theo docs/database.md mục 6 và 7.
+// DEFAULT CURRENT_TIMESTAMP không tự cập nhật updated_at khi bản ghi thay đổi.
+// Dữ liệu tài liệu, tác vụ và vector phục vụ RAG được thiết kế riêng.
+
 Project electronics_inventory {
   database_type: 'MySQL'
   Note: 'Project I - Backend quản lý bán hàng và tồn kho đồ điện tử'
